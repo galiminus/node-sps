@@ -1,0 +1,21 @@
+{
+  "name": "spatial-publish-subscribe",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "migrate": "node-pg-migrate",
+    "start": "node index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "commander": "^4.0.1",
+    "express": "^4.17.1",
+    "jsonwebtoken": "^8.5.1",
+    "node-pg-migrate": "^4.2.0",
+    "pg": "^7.15.1",
+    "socket.io": "^2.3.0",
+    "uuid": "^3.3.3"
+  }
+}
