@@ -26,7 +26,7 @@ exports.startServer = async () => {
   });
 
   io.engine.generateId = (request) => {
-    return `${server.id}:${jwt.verify(request._query.auth_token, process.env.SPS_MASTER_KEY).id}`;
+    return `${server.id.split('-')[0]}:${jwt.verify(request._query.auth_token, process.env.SPS_MASTER_KEY).id}`;
   }
 
   io.use((socket, next) => {
@@ -37,9 +37,8 @@ exports.startServer = async () => {
   });
 
   io.on('connection', (socket) => {
-      console.log(socket.id)
     socket.on('subscriptions:create', async ({ pattern, geometry }, reply) => {
-      reply(await createSubscription(server.id, socket.request.id, socket.id, pattern, geometry))
+      reply(await createSubscription(server.id, socket.request.id, pattern, geometry))
     });
 
     socket.on('subscriptions:destroys', async ({ id }, reply) => {
@@ -62,9 +61,8 @@ exports.startServer = async () => {
       // await destroySubscriptionsConnection(socket.id);
     });
     pubsub.addChannel(socket.id, function (event) {
-      console.log("LOL", event);
+      socket.emit('actions:received', event)
     });
-    pubsub.publish(socket.id, { hello: "world" });
   });
 
   http.listen(process.env.PORT);

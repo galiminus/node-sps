@@ -51,7 +51,7 @@ exports.up = pgm => {
             WHERE NEW.queue LIKE subscriptions.pattern AND ST_3DIntersects(NEW.geometry, subscriptions.geometry)
           )
         LOOP
-          EXECUTE pg_notify(subscription.server_id::string || ':' || subscription.entity_id::string, NEW);
+          EXECUTE pg_notify(split_part(subscription.server_id::text, '-', 1) || ':' || subscription.entity_id::text, row_to_json(NEW)::text);
         END LOOP;
         RETURN NEW;
       END;
