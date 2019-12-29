@@ -5,7 +5,6 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const jwt = require('jsonwebtoken');
 
-const { pool } = require('./pool');
 const { pubsub } = require('./pubsub');
 
 const {
@@ -14,7 +13,7 @@ const {
   createSubscription,
   destroySubscription,
   listSubscriptions,
-  destroySubscriptionsConnection,
+  cleanupEntitySubscriptions,
   createAction,
 } = require('./operations');
 
@@ -41,24 +40,16 @@ exports.startServer = async () => {
       reply(await createSubscription(server.id, socket.request.id, pattern, geometry))
     });
 
-    socket.on('subscriptions:destroys', async ({ id }, reply) => {
+    socket.on('subscriptions:destroy', async ({ id }, reply) => {
       reply(await destroySubscription(id))
     });
 
     socket.on('actions:create', async ({ queue, type, payload, geometry }, reply) => {
       reply(await createAction(queue, type, payload, geometry));
-      // const results = await pool.query(
-      //   "SELECT entity_id, connection FROM subscriptions WHERE $1 LIKE subscriptions.pattern AND ST_3DIntersects($2::geometry, subscriptions.geometry)", [queue, geometry]
-      // );
-      // results.rows.forEach((row) => {
-      //   io.to(row.connection).emit('action', action);
-      // });
-
-      // reply({ status: 'ok', recipients: results.rows.map((row) => row.entity_id) });
     });
 
     socket.on('disconnect', async () => {
-      // await destroySubscriptionsConnection(socket.id);
+      await cleanupEntitySubscriptions(server.id, socket.request.id);
     });
     pubsub.addChannel(socket.id, function (event) {
       socket.emit('actions:received', event)

@@ -92,6 +92,15 @@ exports.listSubscriptions = async () => {
   });
 }
 
+exports.cleanupEntitySubscriptions = async (serverId, entityId) => {
+  await pool.query("DELETE FROM subscriptions WHERE server_id = $1 AND entity_id = $2", [serverId, entityId])
+
+  return ({
+    status: 'ok',
+  });
+}
+
+
 exports.createAction = async (queue, type, payload, geometry) => {
   const result = await pool.query(
     'INSERT INTO actions (queue, type, payload, geometry) VALUES ($1, $2, $3::json, $4::geometry) RETURNING id', [queue, type, payload, geometry]
