@@ -2,6 +2,9 @@ const process = require('process');
 const jwt = require('jsonwebtoken');
 
 const { pool } = require('./pool');
+const { pubsub } = require('./pubsub');
+
+const { buildConnectionId } = require('./utils');
 
 exports.createEntity = async () => {
   const result = await pool.query("INSERT INTO entities DEFAULT VALUES RETURNING id")
@@ -64,9 +67,9 @@ exports.listServers = async () => {
   });
 }
 
-exports.createSubscription = async (serverId, entityId, pattern, geometry) => {
+exports.createSubscription = async (serverId, entityId, queue, geometry) => {
   const result = await pool.query(
-    'INSERT INTO subscriptions (server_id, entity_id, pattern, geometry) VALUES ($1::uuid, $2::uuid, $3, $4::geometry) RETURNING id', [serverId, entityId, pattern, geometry]
+    'INSERT INTO subscriptions (server_id, entity_id, queue, geometry) VALUES ($1::uuid, $2::uuid, $3, $4::geometry) RETURNING id', [serverId, entityId, queue, geometry]
   );
 
   return({
@@ -84,7 +87,7 @@ exports.destroySubscription = async (id) => {
 }
 
 exports.listSubscriptions = async () => {
-  const result = await pool.query("SELECT id, server_id, entity_id, pattern, ST_AsText(geometry) as geometry FROM subscriptions")
+  const result = await pool.query("SELECT id, server_id, entity_id, queue, ST_AsText(geometry) as geometry FROM subscriptions")
 
   return ({
     status: 'ok',
@@ -101,13 +104,17 @@ exports.cleanupEntitySubscriptions = async (serverId, entityId) => {
 }
 
 
-exports.createAction = async (queue, type, payload, geometry) => {
+exports.createAction = async (entityId, queue, type, payload, geometry) => {
   const result = await pool.query(
-    'INSERT INTO actions (queue, type, payload, geometry) VALUES ($1, $2, $3::json, $4::geometry) RETURNING id', [queue, type, payload, geometry]
+    'INSERT INTO actions (entity_id, queue, type, payload, geometry) VALUES ($1::uuid, $2, $3, $4::json, $5::geometry) RETURNING id', [entityId, queue, type, payload, geometry]
   );
 
   return({
     status: 'ok',
     result: result.rows[0]
   });
+}
+
+exports.listenActions = async (serverId, entityId, callback) => {
+  pubsub.addChannel(buildConnectionId(serverId, entityId), callback);
 }

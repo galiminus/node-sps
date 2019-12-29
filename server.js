@@ -5,7 +5,7 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const jwt = require('jsonwebtoken');
 
-const { pubsub } = require('./pubsub');
+const { buildConnectionId } = require('./utils');
 
 const {
   createServer,
@@ -15,6 +15,7 @@ const {
   listSubscriptions,
   cleanupEntitySubscriptions,
   createAction,
+  listenActions
 } = require('./operations');
 
 exports.startServer = async () => {
@@ -25,7 +26,7 @@ exports.startServer = async () => {
   });
 
   io.engine.generateId = (request) => {
-    return `${server.id.split('-')[0]}:${jwt.verify(request._query.auth_token, process.env.SPS_MASTER_KEY).id}`;
+    return buildConnectionId(server.id, jwt.verify(request._query.auth_token, process.env.SPS_MASTER_KEY).id);
   }
 
   io.use((socket, next) => {
@@ -36,8 +37,8 @@ exports.startServer = async () => {
   });
 
   io.on('connection', (socket) => {
-    socket.on('subscriptions:create', async ({ pattern, geometry }, reply) => {
-      reply(await createSubscription(server.id, socket.request.id, pattern, geometry))
+    socket.on('subscriptions:create', async ({ queue, geometry }, reply) => {
+      reply(await createSubscription(server.id, socket.request.id, queue, geometry))
     });
 
     socket.on('subscriptions:destroy', async ({ id }, reply) => {
@@ -45,13 +46,14 @@ exports.startServer = async () => {
     });
 
     socket.on('actions:create', async ({ queue, type, payload, geometry }, reply) => {
-      reply(await createAction(queue, type, payload, geometry));
+      reply(await createAction(socket.request.id, queue, type, payload, geometry));
     });
 
     socket.on('disconnect', async () => {
       await cleanupEntitySubscriptions(server.id, socket.request.id);
     });
-    pubsub.addChannel(socket.id, function (event) {
+
+    listenActions(server.id, socket.request.id, function (event) {
       socket.emit('actions:received', event)
     });
   });

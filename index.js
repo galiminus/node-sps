@@ -3,6 +3,7 @@ const process = require('process');
 
 const { startServer } = require('./server');
 const { pool } = require('./pool');
+const { pubsub } = require('./pubsub');
 const {
   createEntity,
   destroyEntity,
@@ -13,7 +14,8 @@ const {
   createSubscription,
   destroySubscription,
   listSubscriptions,
-  createAction
+  createAction,
+  listenActions
 } = require('./operations');
 
 program
@@ -72,10 +74,10 @@ program
    });
 
 program
-  .command('subscriptions:create <serverId> <entityId> <pattern> <geometry>')
+  .command('subscriptions:create <serverId> <entityId> <queue> <geometry>')
    .description('Create a new subscription')
-   .action(async (server, entityId, pattern, geometry) => {
-      console.log(JSON.stringify(await createSubscription(server, entityId, pattern, geometry)));
+   .action(async (server, entityId, queue, geometry) => {
+      console.log(JSON.stringify(await createSubscription(server, entityId, queue, geometry)));
       pool.end();
    });
 
@@ -96,10 +98,21 @@ program
    });
 
 program
-  .command('actions:create <queue> <type> <payload> <geometry>')
+  .command('actions:create <entityId> <queue> <type> <payload> <geometry>')
   .description('Push a new action')
-  .action(async (queue, type, payload, geometry) => {
-    console.log(JSON.stringify(await createAction(queue, type, payload, geometry)));
+  .action(async (entityId, queue, type, payload, geometry) => {
+    console.log(JSON.stringify(await createAction(entityId, queue, type, payload, geometry)));
   });
+
+program
+  .command('actions:listen <serverId> <entityId>')
+  .description('Listen for actions')
+  .action((serverId, entityId) => {
+    listenActions(serverId, entityId, function(action) {
+      console.log(JSON.stringify(action));
+      pubsub.close();
+    })
+  });
+
 
 program.parse(process.argv);

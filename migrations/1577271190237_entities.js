@@ -19,17 +19,18 @@ exports.up = pgm => {
   pgm.createTable('subscriptions', {
     'id': { type: "uuid", default: pgm.func("uuid_generate_v4()") },
     'geometry': { type: "geometry" },
-    'pattern': { type: 'string' },
+    'queue': { type: 'string' },
     'entity_id': { type: 'uuid', references: 'entities', onDelete: 'cascade' },
     'server_id': { type: 'uuid', references: 'servers', onDelete: 'cascade' },
   });
-  pgm.createIndex('subscriptions', 'pattern', { method: 'btree' });
+  pgm.createIndex('subscriptions', 'queue', { method: 'btree' });
   pgm.createIndex('subscriptions', 'geometry', { method: 'gist' });
   pgm.createIndex('subscriptions', 'server_id', { method: 'btree' });
   pgm.createIndex('subscriptions', 'entity_id', { method: 'btree' });
 
   pgm.createTable('actions', {
     'id': { type: "uuid", default: pgm.func("uuid_generate_v4()"), primaryKey: true },
+    'entity_id': { type: 'uuid', references: 'entities', onDelete: 'cascade' },
     'queue': { type: 'string' },
     'type': { type: 'string' },
     'payload': { type: 'json' },
@@ -37,6 +38,7 @@ exports.up = pgm => {
   });
   pgm.createIndex('actions', 'id', { method: 'btree' });
   pgm.createIndex('actions', 'type', { method: 'btree' });
+  pgm.createIndex('actions', 'entity_id', { method: 'btree' });
 
   pgm.createFunction('notify',
     [],
@@ -48,10 +50,13 @@ exports.up = pgm => {
         FOR subscription IN
           (
             SELECT server_id, entity_id FROM subscriptions
-            WHERE NEW.queue LIKE subscriptions.pattern AND ST_3DIntersects(NEW.geometry, subscriptions.geometry)
+            WHERE NEW.queue = subscriptions.queue AND ST_3DIntersects(NEW.geometry, subscriptions.geometry)
           )
         LOOP
-          EXECUTE pg_notify(split_part(subscription.server_id::text, '-', 1) || ':' || subscription.entity_id::text, row_to_json(NEW)::text);
+          EXECUTE pg_notify(
+            split_part(subscription.server_id::text, '-', 1) || ':' || subscription.entity_id::text,
+            json_build_object('id', NEW.id, 'entity_id', NEW.entity_id, 'type', NEW.type, 'payload', NEW.payload)::text
+          );
         END LOOP;
         RETURN NEW;
       END;
@@ -68,9 +73,9 @@ exports.up = pgm => {
 
 exports.down = pgm => {
   pgm.dropTable('subscriptions');
+  pgm.dropTable('actions');
   pgm.dropTable('servers');
   pgm.dropTable('entities');
-  pgm.dropTable('actions');
   pgm.dropFunction('notify', []);
   pgm.dropExtension('postgis');
   pgm.dropExtension('uuid-ossp');
