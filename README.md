@@ -22,7 +22,6 @@ Create a first entity, entities are like users and this command will output the 
 ```
 node index.js entities:create
 {"status"=>"ok", "result"=>{"id"=>"292795ed-f009-4ea9-ba50-4a15231c47e6", "token"=>"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjI5Mjc5NWVkLWYwMDktNGVhOS1iYTUwLTRhMTUyMzFjNDdlNiIsImlhdCI6MTU3NzYyOTQyMH0.CrFrA0W_uovpdWIDIOMjWX8bpAJM6YE4Msn4g0mwIvs"}}
-
 ```
 
 Create another entity and makes it listen to events on a particular point
@@ -39,7 +38,7 @@ node index.js actions:listen 894a15f6-48d1-49fb-94ea-ab27e4ff3f3f 8dc7c87d-260d-
 Push an action on the same point with the first entity
 ```
 node index.js actions:create 292795ed-f009-4ea9-ba50-4a15231c47e6 'test:test' 'NEW_ACTION' '{"a":"b"}' 'POINT(0 0 0)'
-{"status"=>"ok"}
+{"status"=>"ok", "result"=>{"id"=>"076031d6-2a1f-4bef-a971-a91be34581bc"}}
 ```
 
 The action is received by the second entity.
