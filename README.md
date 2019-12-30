@@ -11,13 +11,6 @@ On paper, it makes it easy to do things like limiting events to a particular roo
 Node SPS ships with a simple CLI API, more will be added later:
 
 
-Create a server, which a just a container for subscriptions:
-```
-node index.js servers:create
-{"status"=>"ok", "result"=>{"id"=>"894a15f6-48d1-49fb-94ea-ab27e4ff3f3f"}}
-```
-
-
 Create a first entity, entities are like users and this command will output the entity ID and a connection token:
 ```
 node index.js entities:create
@@ -29,10 +22,10 @@ Create another entity and makes it listen to events on a particular point:
 node index.js entities:create
 {"status"=>"ok", "result"=>{"id"=>"8dc7c87d-260d-47c8-b53c-92c86914e290", "token"=>"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjhkYzdjODdkLTI2MGQtNDdjOC1iNTNjLTkyYzg2OTE0ZTI5MCIsImlhdCI6MTU3NzYyOTQyMH0.5LBB-VtnpkV5kEc9IEqsLlL4XbXjnJuVHFqgw1Lp_mA"}}
 
-node index.js subscriptions:create 894a15f6-48d1-49fb-94ea-ab27e4ff3f3f 8dc7c87d-260d-47c8-b53c-92c86914e290 'test:test' 'POINT(0 0 0)'
+node index.js subscriptions:create 8dc7c87d-260d-47c8-b53c-92c86914e290 'test:test' 'POINT(0 0 0)'
 {"status"=>"ok", "result"=>{"id"=>"f618532a-37b0-46f8-87b1-c162bdf702dc"}}
 
-node index.js actions:listen 894a15f6-48d1-49fb-94ea-ab27e4ff3f3f 8dc7c87d-260d-47c8-b53c-92c86914e290
+node index.js actions:listen 8dc7c87d-260d-47c8-b53c-92c86914e290
 ```
 
 Push an action on the same point with the first entity:
@@ -48,9 +41,6 @@ The action is received by the second entity:
 
 Clean things up:
 ```
-node index.js servers:destroy 894a15f6-48d1-49fb-94ea-ab27e4ff3f3f
-{"status"=>"ok"}
-
 node index.js entities:destroy 292795ed-f009-4ea9-ba50-4a15231c47e6
 {"status"=>"ok"}
 

@@ -11,21 +11,14 @@ exports.up = pgm => {
   });
   pgm.createIndex('entities', 'id', { method: 'btree' });
 
-  pgm.createTable('servers', {
-    'id': { type: "uuid", default: pgm.func("uuid_generate_v4()"), primaryKey: true },
-  });
-  pgm.createIndex('servers', 'id', { method: 'btree' });
-
   pgm.createTable('subscriptions', {
     'id': { type: "uuid", default: pgm.func("uuid_generate_v4()") },
     'geometry': { type: "geometry" },
     'queue': { type: 'string' },
     'entity_id': { type: 'uuid', references: 'entities', onDelete: 'cascade' },
-    'server_id': { type: 'uuid', references: 'servers', onDelete: 'cascade' },
   });
   pgm.createIndex('subscriptions', 'queue', { method: 'btree' });
   pgm.createIndex('subscriptions', 'geometry', { method: 'gist' });
-  pgm.createIndex('subscriptions', 'server_id', { method: 'btree' });
   pgm.createIndex('subscriptions', 'entity_id', { method: 'btree' });
 
   pgm.createTable('actions', {
@@ -49,12 +42,12 @@ exports.up = pgm => {
       BEGIN
         FOR subscription IN
           (
-            SELECT server_id, entity_id FROM subscriptions
+            SELECT entity_id FROM subscriptions
             WHERE NEW.queue = subscriptions.queue AND ST_3DIntersects(NEW.geometry, subscriptions.geometry)
           )
         LOOP
           EXECUTE pg_notify(
-            split_part(subscription.server_id::text, '-', 1) || ':' || subscription.entity_id::text,
+            subscription.entity_id::text,
             json_build_object('id', NEW.id, 'entity_id', NEW.entity_id, 'type', NEW.type, 'payload', NEW.payload)::text
           );
         END LOOP;
@@ -74,7 +67,6 @@ exports.up = pgm => {
 exports.down = pgm => {
   pgm.dropTable('subscriptions');
   pgm.dropTable('actions');
-  pgm.dropTable('servers');
   pgm.dropTable('entities');
   pgm.dropFunction('notify', []);
   pgm.dropExtension('postgis');
